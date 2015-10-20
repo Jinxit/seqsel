@@ -5,6 +5,9 @@ import Text.Parsec.Char
 import Text.Parsec.Language
 import qualified Text.Parsec.Token as Token
 
+data Statement = Statement Int Expr
+            deriving (Eq, Show)
+
 data Expr = Selector String
           | Sequence String
           | Condition String
@@ -45,6 +48,11 @@ cond = Condition <$> (string "cond" *> spaces *> many anyChar)
 call :: Parser Expr
 call = Call <$> (string "call" *> spaces *> many anyChar)
 
+tabs :: Parser Int
+tabs = do
+    indent <- many (string "\t" <|> string "    ")
+    return (length indent)
+
 expr :: Parser Expr
 expr = try define
    <|> try (selector <* eof)
@@ -52,7 +60,13 @@ expr = try define
    <|> try cond
    <|> call
 
+statement :: Parser Statement
+statement = do
+    indent <- tabs
+    expression <- expr
+    return (Statement indent expression)
+
 main :: IO ()
 main = do
     s <- getContents
-    mapM_ putStrLn (map (show . (parse expr "")) (lines s))
+    mapM_ putStrLn (map (show . (parse statement "")) (lines s))
