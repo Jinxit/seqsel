@@ -1,82 +1,114 @@
-module BTree.Parser (Statement, Expr, parseLine, parseFile) where
+module BTree.Parser (Statement, Expr, parseFile) where
 
 import Prelude hiding (sequence)
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Char
+import Data.String.Utils
 
 data Statement = Statement Int Expr
             deriving (Eq, Show)
 
-data Expr = Selector String
-          | Sequence String
+data Define = Define String String
+            deriving (Eq, Show)
+
+data Var = Var String
+            deriving (Eq, Show)
+
+data Expr = Selector String [Expr]
+          | Sequence String [Expr]
           | Condition String
           | Call String
-          | Define String String
             deriving (Eq, Show)
+
+type Defines = [(String, String)]
 
 atom :: Parser String
 atom = (:) <$> lower <*> many (alphaNum <|> oneOf "_")
 
-var :: Parser String
-var = char '$' *> atom
+rest :: Defines -> Parser String
+rest defs = do
+    str <- many (noneOf "\n")
+    let str' = foldl (\s (from, to) -> replace from to s) str defs
+    skipMany newline
+    return (str')
 
-defvar :: Parser String
-defvar = char '#' *> atom
+rest' :: Parser String
+rest' = rest []
 
-rest :: Parser String
-rest = many (noneOf "\n")
-
-define :: Parser Expr
+define :: Parser (String, String)
 define = do
     string "#define"
     spaces
     key <- atom
     spaces
-    value <- rest
-    return (Define key value)
+    value <- rest'
+    skipMany newline
+    return ('#':key, value)
+
+var :: Parser Var
+var = do
+    string "#var"
+    spaces
+    var <- rest'
+    skipMany newline
+    return (Var var)
 
 name :: Parser String
-name = (:) <$> upper <*> many letter <* char ':'
+name = (:) <$> upper <*> many letter <* char ':' <* skipMany newline 
 
-selector :: Parser Expr
-selector = Selector <$> (string "selector" *> spaces *> name)
+selector :: Int -> Defines -> Parser Expr
+selector indent defs = do
+    string "selector"
+    spaces
+    n <- name
+    skipMany newline
+    children <- many1 (expr (indent + 1) defs)
+    skipMany newline
+    return (Selector n children)
 
-sequence :: Parser Expr
-sequence = Sequence <$> (string "sequence" *> spaces *> name)
+sequence :: Int -> Defines -> Parser Expr
+sequence indent defs = do
+    string "sequence"
+    spaces
+    n <- name
+    skipMany newline
+    children <- many1 (expr (indent + 1) defs)
+    skipMany newline
+    return (Sequence n children)
 
-cond :: Parser Expr
-cond = Condition <$> (string "cond" *> spaces *> rest)
+cond :: Defines -> Parser Expr
+cond defs = Condition <$> (string "cond" *> spaces *> rest defs)
 
-call :: Parser Expr
-call = Call <$> (string "call" *> spaces *> rest)
+call :: Defines -> Parser Expr
+call defs = Call <$> (string "call" *> spaces *> rest defs)
+
+ts :: Int -> Parser [String]
+ts indent = count indent (string "\t" <|> string "    ")
 
 tabs :: Parser Int
 tabs = do
     indent <- many (string "\t" <|> string "    ")
     return (length indent)
 
-expr :: Parser Expr
-expr = try define
-   <|> try selector
-   <|> sequence
-   <|> try cond
-   <|> call
+expr :: Int -> Defines -> Parser Expr
+expr indent defs = do
+    try (ts indent)
+    (try (selector indent defs)
+      <|> sequence indent defs
+      <|> try (cond defs)
+      <|> call defs)
 
-statement :: Parser Statement
-statement = do
-    indent <- tabs
-    expression <- expr
-    skipMany newline
-    return (Statement indent expression)
+file :: Parser Expr
+file = do
+    defs <- many (try define)
+    traceM $ show defs
+    vars <- many (try var)
+    traceM $ show vars
+    tree <- expr 0 defs
+    return (tree)
 
-parseLines :: Parser [Statement]
-parseLines = skipMany newline *> many1 statement
-
-parseLine :: String -> Either ParseError Statement
-parseLine = parse statement ""
-
-parseFile :: FilePath -> IO (Either ParseError [Statement])
+parseFile :: FilePath -> IO (Either ParseError Expr)
 parseFile fname = do
     input <- readFile fname
-    return (runParser parseLines () fname input)
+    return (runParser file () fname input)
