@@ -99,16 +99,14 @@ expr indent defs = do
       <|> try (cond defs)
       <|> call defs)
 
-file :: Parser Expr
+file :: Parser ([Var], Expr)
 file = do
     defs <- many (try define)
-    traceM $ show defs
     vars <- many (try var)
-    traceM $ show vars
     tree <- expr 0 defs
-    return (tree)
+    return (vars, tree)
 
-parseFile :: FilePath -> IO (Either ParseError Expr)
+parseFile :: FilePath -> IO (Either ParseError ([Var], Expr))
 parseFile fname = do
     input <- readFile fname
     return (runParser file () fname input)
