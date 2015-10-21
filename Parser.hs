@@ -3,7 +3,6 @@ module BTree.Parser (Var, Expr, parseFile) where
 import Prelude hiding (sequence)
 import Text.Parsec
 import Text.Parsec.String
-import Text.Parsec.Char
 import Data.String.Utils
 
 data Var = Var String
@@ -32,7 +31,7 @@ rest' = rest []
 
 define :: Parser (String, String)
 define = do
-    string "#define"
+    _ <- string "#define"
     spaces
     key <- atom
     spaces
@@ -42,18 +41,18 @@ define = do
 
 var :: Parser Var
 var = do
-    string "#var"
+    _ <- string "#var"
     spaces
-    var <- rest'
+    v <- rest'
     skipMany newline
-    return (Var var)
+    return (Var v)
 
 name :: Parser String
 name = (:) <$> upper <*> many letter <* char ':' <* skipMany newline 
 
 selector :: Int -> Defines -> Parser Expr
 selector indent defs = do
-    string "selector"
+    _ <- string "selector"
     spaces
     n <- name
     skipMany newline
@@ -63,7 +62,7 @@ selector indent defs = do
 
 sequence :: Int -> Defines -> Parser Expr
 sequence indent defs = do
-    string "sequence"
+    _ <- string "sequence"
     spaces
     n <- name
     skipMany newline
@@ -79,11 +78,6 @@ call defs = Call <$> (string "call" *> spaces *> rest defs)
 
 ts :: Int -> Parser [String]
 ts indent = count indent (string "\t" <|> string "    ")
-
-tabs :: Parser Int
-tabs = do
-    indent <- many (string "\t" <|> string "    ")
-    return (length indent)
 
 expr :: Int -> Defines -> Parser Expr
 expr indent defs = do
