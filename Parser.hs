@@ -24,13 +24,16 @@ var = char '$' *> atom
 defvar :: Parser String
 defvar = char '#' *> atom
 
+rest :: Parser String
+rest = many (noneOf "\n")
+
 define :: Parser Expr
 define = do
     string "#define"
     spaces
     key <- atom
     spaces
-    value <- many anyChar
+    value <- rest
     return (Define key value)
 
 name :: Parser String
@@ -43,10 +46,10 @@ sequence :: Parser Expr
 sequence = Sequence <$> (string "sequence" *> spaces *> name)
 
 cond :: Parser Expr
-cond = Condition <$> (string "cond" *> spaces *> many anyChar)
+cond = Condition <$> (string "cond" *> spaces *> rest)
 
 call :: Parser Expr
-call = Call <$> (string "call" *> spaces *> many anyChar)
+call = Call <$> (string "call" *> spaces *> rest)
 
 tabs :: Parser Int
 tabs = do
@@ -55,8 +58,8 @@ tabs = do
 
 expr :: Parser Expr
 expr = try define
-   <|> try (selector <* eof)
-   <|> sequence <* eof
+   <|> try selector
+   <|> sequence
    <|> try cond
    <|> call
 
@@ -64,7 +67,19 @@ statement :: Parser Statement
 statement = do
     indent <- tabs
     expression <- expr
+    skipMany newline
     return (Statement indent expression)
+
+parseLines :: Parser [Statement]
+parseLines = skipMany newline *> many1 statement
+
+parseLine :: String -> Either ParseError Statement
+parseLine = parse statement ""
+
+parseFile :: FilePath -> IO (Either ParseError [Statement])
+parseFile fname = do
+    input <- readFile fname
+    return (runParser parseLines () fname input)
 
 main :: IO ()
 main = do
