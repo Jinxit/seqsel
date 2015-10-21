@@ -4,8 +4,6 @@ import Prelude hiding (sequence)
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Char
-import Text.Parsec.Language
-import qualified Text.Parsec.Token as Token
 
 data Statement = Statement Int Expr
             deriving (Eq, Show)
