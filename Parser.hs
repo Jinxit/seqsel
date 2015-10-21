@@ -1,16 +1,10 @@
-module BTree.Parser (Statement, Expr, parseFile) where
+module BTree.Parser (Var, Expr, parseFile) where
 
 import Prelude hiding (sequence)
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Char
 import Data.String.Utils
-
-data Statement = Statement Int Expr
-            deriving (Eq, Show)
-
-data Define = Define String String
-            deriving (Eq, Show)
 
 data Var = Var String
             deriving (Eq, Show)
