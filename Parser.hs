@@ -1,3 +1,5 @@
+module BTree.Parser (Statement, Expr, parseLine, parseFile) where
+
 import Prelude hiding (sequence)
 import Text.Parsec
 import Text.Parsec.String
@@ -80,8 +82,3 @@ parseFile :: FilePath -> IO (Either ParseError [Statement])
 parseFile fname = do
     input <- readFile fname
     return (runParser parseLines () fname input)
-
-main :: IO ()
-main = do
-    s <- getContents
-    mapM_ putStrLn (map (show . (parse statement "")) (lines s))
