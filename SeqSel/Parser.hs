@@ -20,6 +20,9 @@ name :: Expr -> String
 name (Selector n _) = n
 name (Sequence n _) = n
 
+spaces1 :: Parser ()
+spaces1 = many1 (char ' ') *> pure ()
+
 atom :: Parser String
 atom = (:) <$> lower <*> many (alphaNum <|> oneOf "_")
 
@@ -39,9 +42,9 @@ dropstring s = string s *> pure ()
 define :: Parser (String, String)
 define = do
     dropstring "#define"
-    spaces
+    spaces1
     key <- atom
-    spaces
+    spaces1
     value <- rest'
     skipMany newline
     return ('#':key, value)
@@ -49,7 +52,7 @@ define = do
 var :: Parser Var
 var = do
     dropstring "#var"
-    spaces
+    spaces1
     v <- rest'
     skipMany newline
     return (Var v)
@@ -60,7 +63,7 @@ nodeName = (:) <$> upper <*> many letter <* char ':' <* skipMany newline
 selector :: Int -> Defines -> Parser Expr
 selector indent defs = do
     dropstring "selector"
-    spaces
+    spaces1
     n <- nodeName
     skipMany newline
     children <- many1 (expr (indent + 1) defs)
@@ -70,7 +73,7 @@ selector indent defs = do
 sequence :: Int -> Defines -> Parser Expr
 sequence indent defs = do
     dropstring "sequence"
-    spaces
+    spaces1
     n <- nodeName
     skipMany newline
     children <- many1 (expr (indent + 1) defs)
@@ -78,10 +81,10 @@ sequence indent defs = do
     return (Sequence n children)
 
 cond :: Defines -> Parser Expr
-cond defs = Condition <$> (string "cond" *> spaces *> rest defs)
+cond defs = Condition <$> (string "cond" *> spaces1 *> rest defs)
 
 call :: Defines -> Parser Expr
-call defs = Call <$> (string "call" *> spaces *> rest defs)
+call defs = Call <$> (string "call" *> spaces1 *> rest defs)
 
 ts :: Int -> Parser ()
 ts indent = count indent (string "\t" <|> string "    ") *> pure ()

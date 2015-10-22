@@ -30,10 +30,11 @@ printVar (Var str) = L.pack str <> ";\n"
 
 printFunc :: Expr -> L.Text
 printFunc expr = indent 4 <> "bool run()\n" <> indent 4 <> "{\n"
-              <> indent 8 <> "return" <> printExpr 16 expr <> ";\n" <> indent 4 <> "}"
+              <> indent 8 <> "return" <> printExpr 8 expr <> ";\n" <> indent 4 <> "}"
 
 printTree :: [Var] -> Expr -> L.Text
-printTree vars expr = "#pragma once\n\n#include \"seqsel.hpp\"\n\nnamespace "
-                   <> L.pack (name expr) <> "\n{" <> vars' <> "\n\n" <> printFunc expr <> "\n}"
+printTree vars expr = "#pragma once\n\nclass "
+                   <> L.pack (name expr) <> "\n{\npublic:" <> vars'
+                   <> "\n\n" <> printFunc expr <> "\n};"
   where
     vars' = L.concat $ map (\(Var v) -> "\n" <> indent 4 <> L.pack v <> ";") vars
