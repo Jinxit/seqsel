@@ -1,4 +1,4 @@
-module SeqSel.Parser (Var(..), Expr(..), parseFile) where
+module SeqSel.Parser (Var(..), Expr(..), parseFile, name) where
 
 import Prelude hiding (sequence)
 import Text.Parsec
@@ -15,6 +15,10 @@ data Expr = Selector String [Expr]
             deriving (Eq, Show)
 
 type Defines = [(String, String)]
+
+name :: Expr -> String
+name (Selector n _) = n
+name (Sequence n _) = n
 
 atom :: Parser String
 atom = (:) <$> lower <*> many (alphaNum <|> oneOf "_")
@@ -50,14 +54,14 @@ var = do
     skipMany newline
     return (Var v)
 
-name :: Parser String
-name = (:) <$> upper <*> many letter <* char ':' <* skipMany newline 
+nodeName :: Parser String
+nodeName = (:) <$> upper <*> many letter <* char ':' <* skipMany newline 
 
 selector :: Int -> Defines -> Parser Expr
 selector indent defs = do
     dropstring "selector"
     spaces
-    n <- name
+    n <- nodeName
     skipMany newline
     children <- many1 (expr (indent + 1) defs)
     skipMany newline
@@ -67,7 +71,7 @@ sequence :: Int -> Defines -> Parser Expr
 sequence indent defs = do
     dropstring "sequence"
     spaces
-    n <- name
+    n <- nodeName
     skipMany newline
     children <- many1 (expr (indent + 1) defs)
     skipMany newline
