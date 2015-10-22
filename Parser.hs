@@ -29,9 +29,12 @@ rest defs = do
 rest' :: Parser String
 rest' = rest []
 
+dropstring :: String -> Parser ()
+dropstring s = string s *> pure ()
+
 define :: Parser (String, String)
 define = do
-    _ <- string "#define"
+    dropstring "#define"
     spaces
     key <- atom
     spaces
@@ -41,7 +44,7 @@ define = do
 
 var :: Parser Var
 var = do
-    _ <- string "#var"
+    dropstring "#var"
     spaces
     v <- rest'
     skipMany newline
@@ -52,7 +55,7 @@ name = (:) <$> upper <*> many letter <* char ':' <* skipMany newline
 
 selector :: Int -> Defines -> Parser Expr
 selector indent defs = do
-    _ <- string "selector"
+    dropstring "selector"
     spaces
     n <- name
     skipMany newline
@@ -62,7 +65,7 @@ selector indent defs = do
 
 sequence :: Int -> Defines -> Parser Expr
 sequence indent defs = do
-    _ <- string "sequence"
+    dropstring "sequence"
     spaces
     n <- name
     skipMany newline
@@ -76,8 +79,8 @@ cond defs = Condition <$> (string "cond" *> spaces *> rest defs)
 call :: Defines -> Parser Expr
 call defs = Call <$> (string "call" *> spaces *> rest defs)
 
-ts :: Int -> Parser [String]
-ts indent = count indent (string "\t" <|> string "    ")
+ts :: Int -> Parser ()
+ts indent = count indent (string "\t" <|> string "    ") *> pure ()
 
 expr :: Int -> Defines -> Parser Expr
 expr indent defs = do
