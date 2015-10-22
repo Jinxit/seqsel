@@ -7,7 +7,7 @@
 #var float delta_encoder_right
 #var float ir_front
 
-selector Root:
+selector WallFollow:
     sequence Stuck:
         cond delta_encoder_left < #encoder_min
         cond delta_encoder_right < #encoder_min
@@ -22,4 +22,3 @@ selector Root:
                 cond ir_left_avg < ir_right_avg
                 call publish(nord::action::turn_right, 90)
     call publish(nord::action::forwards_speed, #normal_speed)
-    call fail()
