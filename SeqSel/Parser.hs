@@ -19,6 +19,7 @@ type Defines = [(String, String)]
 name :: Expr -> String
 name (Selector n _) = n
 name (Sequence n _) = n
+name _ = ""
 
 spaces1 :: Parser ()
 spaces1 = many1 (char ' ') *> pure ()
