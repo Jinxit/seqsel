@@ -1,4 +1,4 @@
-module SeqSel.Parser (Var, Expr, parseFile) where
+module SeqSel.Parser (Var(..), Expr(..), parseFile) where
 
 import Prelude hiding (sequence)
 import Text.Parsec
