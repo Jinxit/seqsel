@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module SeqSel.Printer (printExpr, printVar, printRoot) where
+module SeqSel.Printer (printExpr, printVar, printFunc, printTree) where
 
 import Data.Monoid
 import qualified Data.Text.Lazy as L
@@ -10,20 +10,30 @@ indent n = L.pack (replicate n ' ')
 
 printExpr :: Int -> Expr -> L.Text
 printExpr n (Selector node children) = "\n" <> indent n <> "/* " <> L.pack node
-                                    <> " */\n" <> indent n <> "(" <> children' <> "\n" <> indent n <> ")"
+                                    <> " */\n" <> indent n <> "(" <> children'
+                                    <> "\n" <> indent n <> ")"
   where
     children' = L.intercalate ("\n" <> indent n <> "|| ")
                               (map (printExpr (n + 4)) children)
+
 printExpr n (Sequence node children) = "\n" <> indent n <> "/* " <> L.pack node
                                     <> " */\n" <> indent n <> "(" <> children' <> ")"
   where
     children' = L.intercalate " && " (map (printExpr (n + 4)) children)
+
 printExpr _ (Condition cond) = L.pack cond
+
 printExpr _ (Call fun) = L.pack fun
 
 printVar :: Var -> L.Text
 printVar (Var str) = L.pack str <> ";\n"
 
-printRoot :: Expr -> L.Text
-printRoot expr = "bool " <> L.pack (name expr) <> "()\n{\n"
-              <> indent 4 <> "return" <> printExpr 12 expr <> ";\n}"
+printFunc :: Expr -> L.Text
+printFunc expr = indent 4 <> "bool run()\n" <> indent 4 <> "{\n"
+              <> indent 8 <> "return" <> printExpr 16 expr <> ";\n" <> indent 4 <> "}"
+
+printTree :: [Var] -> Expr -> L.Text
+printTree vars expr = "#pragma once\n\n#include \"seqsel.hpp\"\n\nnamespace "
+                   <> L.pack (name expr) <> "\n{" <> vars' <> "\n\n" <> printFunc expr <> "\n}"
+  where
+    vars' = L.concat $ map (\(Var v) -> "\n" <> indent 4 <> L.pack v <> ";") vars
