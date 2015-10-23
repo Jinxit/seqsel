@@ -16,6 +16,12 @@ data Expr = Selector String [Expr]
 
 type Defines = [(String, String)]
 
+traverse' :: (String -> String) -> Expr -> Expr
+traverse' f (Selector n children) = Selector (f n) (map (traverse' f) children)
+traverse' f (Sequence n children) = Sequence (f n) (map (traverse' f) children)
+traverse' f (Condition str) = Condition (f str)
+traverse' f (Call str) = Call (f str)
+
 name :: Expr -> String
 name (Selector n _) = n
 name (Sequence n _) = n
@@ -27,15 +33,17 @@ spaces1 = many1 (char ' ') *> pure ()
 atom :: Parser String
 atom = (:) <$> lower <*> many (alphaNum <|> oneOf "_")
 
-rest :: Defines -> Parser String
-rest defs = do
+rest :: Parser String
+rest = do
     str <- many (noneOf "\n")
-    let str' = foldl (\s (from, to) -> replace from to s) str defs
     skipMany newline
-    return (str')
+    return (str)
 
-rest' :: Parser String
-rest' = rest []
+replace' :: String -> Defines -> String
+replace' = foldl (\s (from, to) -> replace from to s)
+
+replaceDefs :: Defines -> Expr -> Expr
+replaceDefs defs = traverse' (flip replace' defs)
 
 dropString :: String -> Parser ()
 dropString s = string s *> pure ()
@@ -46,7 +54,7 @@ define = do
     spaces1
     key <- atom
     spaces1
-    value <- rest'
+    value <- rest
     skipMany newline
     return ('#':key, value)
 
@@ -54,56 +62,56 @@ var :: Parser Var
 var = do
     dropString "#var"
     spaces1
-    v <- rest'
+    v <- rest
     skipMany newline
     return (Var v)
 
 nodeName :: Parser String
 nodeName = (:) <$> upper <*> many letter <* char ':' <* skipMany newline 
 
-selector :: Int -> Defines -> Parser Expr
-selector indent defs = do
+selector :: Int -> Parser Expr
+selector indent = do
     dropString "selector"
     spaces1
     n <- nodeName
     skipMany newline
-    children <- many1 (expr (indent + 1) defs)
+    children <- many1 (expr (indent + 1))
     skipMany newline
     return (Selector n children)
 
-sequence :: Int -> Defines -> Parser Expr
-sequence indent defs = do
+sequence :: Int -> Parser Expr
+sequence indent = do
     dropString "sequence"
     spaces1
     n <- nodeName
     skipMany newline
-    children <- many1 (expr (indent + 1) defs)
+    children <- many1 (expr (indent + 1))
     skipMany newline
     return (Sequence n children)
 
-cond :: Defines -> Parser Expr
-cond defs = Condition <$> (string "cond" *> spaces1 *> rest defs)
+cond :: Parser Expr
+cond = Condition <$> (string "cond" *> spaces1 *> rest)
 
-call :: Defines -> Parser Expr
-call defs = Call <$> (string "call" *> spaces1 *> rest defs)
+call :: Parser Expr
+call = Call <$> (string "call" *> spaces1 *> rest)
 
 ts :: Int -> Parser ()
 ts indent = count indent (string "\t" <|> string "    ") *> pure ()
 
-expr :: Int -> Defines -> Parser Expr
-expr indent defs = do
+expr :: Int -> Parser Expr
+expr indent = do
     try (ts indent)
-    (try (selector indent defs)
-      <|> sequence indent defs
-      <|> try (cond defs)
-      <|> call defs)
+    (try (selector indent)
+      <|> sequence indent
+      <|> try cond
+      <|> call)
 
 file :: Parser ([Var], Expr)
 file = do
     defs <- many (try define)
     vars <- many (try var)
-    tree <- expr 0 defs
-    return (vars, tree)
+    tree <- expr 0
+    return (vars, replaceDefs defs tree)
 
 parseFile :: FilePath -> IO (Either ParseError ([Var], Expr))
 parseFile fname = do
