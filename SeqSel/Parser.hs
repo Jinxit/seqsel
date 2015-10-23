@@ -37,12 +37,12 @@ rest defs = do
 rest' :: Parser String
 rest' = rest []
 
-dropstring :: String -> Parser ()
-dropstring s = string s *> pure ()
+dropString :: String -> Parser ()
+dropString s = string s *> pure ()
 
 define :: Parser (String, String)
 define = do
-    dropstring "#define"
+    dropString "#define"
     spaces1
     key <- atom
     spaces1
@@ -52,7 +52,7 @@ define = do
 
 var :: Parser Var
 var = do
-    dropstring "#var"
+    dropString "#var"
     spaces1
     v <- rest'
     skipMany newline
@@ -63,7 +63,7 @@ nodeName = (:) <$> upper <*> many letter <* char ':' <* skipMany newline
 
 selector :: Int -> Defines -> Parser Expr
 selector indent defs = do
-    dropstring "selector"
+    dropString "selector"
     spaces1
     n <- nodeName
     skipMany newline
@@ -73,7 +73,7 @@ selector indent defs = do
 
 sequence :: Int -> Defines -> Parser Expr
 sequence indent defs = do
-    dropstring "sequence"
+    dropString "sequence"
     spaces1
     n <- nodeName
     skipMany newline
