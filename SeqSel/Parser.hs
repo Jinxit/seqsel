@@ -17,8 +17,8 @@ data Expr = Selector String [Expr]
 type Defines = [(String, String)]
 
 traverse' :: (String -> String) -> Expr -> Expr
-traverse' f (Selector n children) = Selector (f n) (map (traverse' f) children)
-traverse' f (Sequence n children) = Sequence (f n) (map (traverse' f) children)
+traverse' f (Selector n children) = Selector n (map (traverse' f) children)
+traverse' f (Sequence n children) = Sequence n (map (traverse' f) children)
 traverse' f (Condition str) = Condition (f str)
 traverse' f (Call str) = Call (f str)
 
