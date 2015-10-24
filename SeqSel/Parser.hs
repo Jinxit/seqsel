@@ -4,6 +4,7 @@ import Prelude hiding (sequence)
 import Text.Parsec
 import Text.Parsec.String
 import Data.String.Utils
+import Control.Monad hiding (sequence)
 
 data Var = Var String
             deriving (Eq, Show)
@@ -43,10 +44,10 @@ replace' :: String -> Defines -> String
 replace' = foldl (\s (from, to) -> replace from to s)
 
 replaceDefs :: Defines -> Expr -> Expr
-replaceDefs defs = traverse' (flip replace' defs)
+replaceDefs = traverse' . flip replace'
 
 dropString :: String -> Parser ()
-dropString s = string s *> pure ()
+dropString = void . string
 
 define :: Parser (String, String)
 define = do
