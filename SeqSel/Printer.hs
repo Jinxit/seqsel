@@ -10,7 +10,7 @@ indented = (<>) . ("\n" <>) . L.pack . flip replicate ' '
 
 printExpr :: Int -> Expr -> L.Text
 printExpr n (Selector node children) = indented n ("/* " <> L.pack node <> " */")
-                                    <> indented n ("(" <> children')
+                                    <> indented n ("(   " <> children')
                                     <> indented n ")"
   where
     children' = L.intercalate (indented n "|| ") (map (printExpr (n + 4)) children)
