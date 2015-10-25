@@ -5,19 +5,18 @@ import Data.Monoid
 import qualified Data.Text.Lazy as L
 import SeqSel.Parser
 
-indent :: Int -> L.Text
-indent n = L.pack (replicate n ' ')
+indented :: Int -> L.Text -> L.Text
+indented n str = "\n" <> L.pack (replicate n ' ') <> str
 
 printExpr :: Int -> Expr -> L.Text
-printExpr n (Selector node children) = "\n" <> indent n <> "/* " <> L.pack node
-                                    <> " */\n" <> indent n <> "(" <> children'
-                                    <> "\n" <> indent n <> ")"
+printExpr n (Selector node children) = indented n ("/* " <> L.pack node <> " */")
+                                    <> indented n ("(" <> children')
+                                    <> indented n ")"
   where
-    children' = L.intercalate ("\n" <> indent n <> "|| ")
-                              (map (printExpr (n + 4)) children)
+    children' = L.intercalate (indented n "|| ") (map (printExpr (n + 4)) children)
 
-printExpr n (Sequence node children) = "\n" <> indent n <> "/* " <> L.pack node
-                                    <> " */\n" <> indent n <> "(" <> children' <> ")"
+printExpr n (Sequence node children) = indented n ("/* " <> L.pack node <> " */")
+                                    <> indented n ("(" <> children' <> ")")
   where
     children' = L.intercalate " && " (map (printExpr (n + 4)) children)
 
@@ -25,16 +24,18 @@ printExpr _ (Condition cond) = L.pack cond
 
 printExpr _ (Call fun) = L.pack fun
 
-printVar :: Var -> L.Text
-printVar (Var str) = L.pack str <> ";\n"
+printVar :: Int -> Var -> L.Text
+printVar n (Var str) = indented n (L.pack str <> ";")
 
-printFunc :: Expr -> L.Text
-printFunc expr = indent 4 <> "bool run()\n" <> indent 4 <> "{\n"
-              <> indent 8 <> "return" <> printExpr 8 expr <> ";\n" <> indent 4 <> "}"
+printFunc :: Int -> Expr -> L.Text
+printFunc n expr = indented n "bool run()"
+                <> indented n "{"
+                <> indented (n + 4) ("return" <> printExpr (n + 4) expr <> ";")
+                <> indented n "}"
 
 printTree :: [Var] -> Expr -> L.Text
 printTree vars expr = "#pragma once\n\nclass "
                    <> L.pack (name expr) <> "\n{\npublic:" <> vars'
-                   <> "\n\n" <> printFunc expr <> "\n};"
+                   <> "\n" <> printFunc 4 expr <> "\n};"
   where
-    vars' = L.concat $ map (\(Var v) -> "\n" <> indent 4 <> L.pack v <> ";") vars
+    vars' = L.concat $ map (printVar 4) vars
