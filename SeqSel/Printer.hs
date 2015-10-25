@@ -6,7 +6,7 @@ import qualified Data.Text.Lazy as L
 import SeqSel.Parser
 
 indented :: Int -> L.Text -> L.Text
-indented n str = "\n" <> L.pack (replicate n ' ') <> str
+indented = (<>) . ("\n" <>) . L.pack . flip replicate ' '
 
 printExpr :: Int -> Expr -> L.Text
 printExpr n (Selector node children) = indented n ("/* " <> L.pack node <> " */")
