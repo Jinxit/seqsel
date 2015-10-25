@@ -34,8 +34,8 @@ printFunc n expr = indented n "bool run()"
                 <> indented n "}"
 
 printTree :: [Var] -> Expr -> L.Text
-printTree vars expr = "#pragma once\n\nclass "
-                   <> L.pack (name expr) <> "\n{\npublic:" <> vars'
+printTree vars expr = "#pragma once\n\nclass " <> L.pack (name expr)
+                   <> "\n{\npublic:" <> vars'
                    <> "\n" <> printFunc 4 expr <> "\n};"
   where
     vars' = L.concat $ map (printVar 4) vars
